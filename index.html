@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Portfolio Monitor">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23667eea'/><text y='70' font-size='60' text-anchor='middle' x='50' fill='white'>📊</text></svg>">
+    <title>ポートフォリオモニター</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 100%;
+            padding: 10px;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 15px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        .header h1 {
+            font-size: 1.5rem;
+            color: #2d3748;
+            margin-bottom: 5px;
+        }
+        
+        .header p {
+            font-size: 0.9rem;
+            color: #718096;
+        }
+        
+        .quick-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .stat-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        .stat-card h3 {
+            font-size: 0.8rem;
+            color: #718096;
+            margin-bottom: 8px;
+        }
+        
+        .stat-card .value {
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: #2d3748;
+            margin-bottom: 5px;
+        }
+        
+        .stat-card .change {
+            font-size: 0.8rem;
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+        
+        .change.positive { background: #c6f6d5; color: #22543d; }
+        .change.negative { background: #fed7d7; color: #742a2a; }
+        
+        .tabs {
+            display: flex;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 5px;
+            margin-bottom: 15px;
+            overflow-x: auto;
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 10px 8px;
+            text-align: center;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.3s ease;
+        }
+        
+        .tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .tab-content {
+            display: none;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .indicator-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .indicator-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid transparent;
+        }
+        
+        .indicator-item.normal { border-left-color: #48bb78; }
+        .indicator-item.warning { border-left-color: #ed8936; }
+        .indicator-item.alert { border-left-color: #f56565; }
+        
+        .indicator-name {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #4a5568;
+            flex: 1;
+        }
+        
+        .indicator-value {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #2d3748;
+            margin-right: 10px;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        
+        .status-dot.normal { background: #48bb78; }
+        .status-dot.warning { background: #ed8936; }
+        .status-dot.alert { background: #f56565; }
+        
+        .alert-banner {
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+            color: #2d3748;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            border-left: 5px solid #f56565;
+            display: none;
+        }
+        
+        .alert-banner.show {
+            display: block;
+        }
+        
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 16px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+        
+        .btn:active {
+            transform: scale(0.95);
+        }
+        
+        .last-updated {
+            background: rgba(255, 255, 255, 0.8);
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 0.8rem;
+            color: #718096;
+            margin-top: 15px;
+        }
+        
+        /* PWA スタイル */
+        .install-prompt {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            display: none;
+            text-align: center;
+        }
+        
+        .install-btn {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        
+        /* 横画面対応 */
+        @media (orientation: landscape) and (max-height: 500px) {
+            .quick-stats {
+                grid-template-columns: repeat(4, 1fr);
+            }
+            
+            .header h1 {
+                font-size: 1.2rem;
+            }
+            
+            .header p {
+                display: none;
+            }
+        }
+        
+        /* 大画面対応 */
+        @media (min-width: 768px) {
+            .container {
+                max-width: 800px;
+                margin: 0 auto;
+                padding: 20px;
+            }
+            
+            .quick-stats {
+                grid-template-columns: repeat(4, 1fr);
+            }
+            
+            .controls {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- PWA インストール -->
+        <div class="install-prompt" id="installPrompt">
+            <div>📱 ホーム画面に追加してアプリのように使用</div>
+            <button class="install-btn" id="installBtn">インストール</button>
+        </div>
+
+        <!-- ヘッダー -->
+        <div class="header">
+            <h1>📊 ポートフォリオモニター</h1>
+            <p>リアルタイム市場監視</p>
+        </div>
+
+        <!-- アラートバナー -->
+        <div class="alert-banner" id="alertBanner">
+            <strong>🚨 アラート:</strong> <span id="alertText"></span>
+        </div>
+
+        <!-- クイック統計 -->
+        <div class="quick-stats">
+            <div class="stat-card">
+                <h3>VIX</h3>
+                <div class="value" id="vixValue">18.5</div>
+                <div class="change negative">-2.1</div>
+            </div>
+            <div class="stat-card">
+                <h3>10Y</h3>
+                <div class="value" id="treasury10yValue">4.25%</div>
+                <div class="change positive">+0.15%</div>
+            </div>
+            <div class="stat-card">
+                <h3>USD/JPY</h3>
+                <div class="value" id="usdjpyValue">157.25</div>
+                <div class="change positive">+0.85</div>
+            </div>
+            <div class="stat-card">
+                <h3>WTI</h3>
+                <div class="value" id="wtiValue">$72.4</div>
+                <div class="change positive">+1.2%</div>
+            </div>
+        </div>
+
+        <!-- タブ -->
+        <div class="tabs">
+            <div class="tab active" onclick="showTab('rates')">金利</div>
+            <div class="tab" onclick="showTab('growth')">成長</div>
+            <div class="tab" onclick="showTab('valuation')">バリュー</div>
+            <div class="tab" onclick="showTab('volatility')">ボラ</div>
+            <div class="tab" onclick="showTab('inflation')">インフレ</div>
+            <div class="tab" onclick="showTab('credit')">信用</div>
+            <div class="tab" onclick="showTab('etf')">ETF</div>
+        </div>
+
+        <!-- タブコンテンツ -->
+        <div class="tab-content active" id="rates">
+            <h3>💰 金利 & 流動性</h3>
+            <div class="indicator-list">
+                <div class="indicator-item normal">
+                    <div class="indicator-name">4週T-Bill vs FF金利</div>
+                    <div class="indicator-value">5.25%</div>
+                    <div class="status-dot normal"></div>
+                </div>
+                <div class="indicator-item normal">
+                    <div class="indicator-name">10年Treasury利回り</div>
+                    <div class="indicator-value">4.25%</div>
+                    <div class="status-dot normal"></div>
+                </div>
+                <div class="indicator-item warning">
+                    <div class="indicator-name">MOVE Index</div>
+                    <div class="indicator-value">125.4</div>
+                    <div class="status-dot warning"></div>
+                </div>
+                <div class="indicator-item normal">
+                    <div class="indicator-name">FRA-OIS スプレッド</div>
+                    <div class="indicator-value">0.15%</div>
+                    <div class="status-dot normal"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="growth">
+            <h3>📈 成長サイクル</h3>
+            <div class="indicator-list">
+                <div class="indicator-item alert">
+                    <div class="indicator-name">ISM製造業PMI</div>
+                    <div class="indicator-value">47.8</div>
+                    <div class="status-dot alert"></div>
+                </div>
+                <div class="indicator-item normal">
+                    <div class="indicator-name">米雇用統計(NFP)</div>
+                    <div class="indicator-value">+175K</div>
+                    <div class="status-dot normal"></div>
+                </div>
+                <div class="indicator-item normal">
+                    <div class="indicator-name">GDP成長率</div>
+                    <div class="indicator-value">2.1%</div>
+                    <div class="status-dot normal"></div>
+                </div>
+                <div class="indicator-item warning">
+                    <div class="indicator-name">LEI指数</div>
+                    <div class="indicator-value">-0.8%</div>
+                    <div class="status-dot warning"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="valuation">
+            <h3>💎 バリュエーション & フロー</h3>
+            <div class="indicator-list">
+                <div class="indicator-item warning">
+                    <div class="indicator-name">CAPE (Shiller P/E)</div>
+                    <div class="indicator-value">32.5</div>
+                    <div class="status-dot warning"></div>
+                </div>
+                <div class="indicator-item normal">
+                    <div class="indicator-name">S&P500 P/E</div>
+                    <div class="indicator-value">19.8</div>
+                    <div class="status-dot normal"></div>
+                </div>
+                <div class="indicator-item normal">
+                    <div class="indicator-name">EPFRフロー</div>
+                    <div class="indicator-value">+2.1B</div>
+                    <div class="status-dot normal"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="volatility">
+            <h3>📊 ボラティリティ & 投資家心理</h3>
+            <div class="indicator-list">
+                <div class="indicator-item normal">
+                    <div class="indicator-name">VIX指数</div>
+                    <div class="indicator-value">18.5</div>
+                    <div class="status-dot normal"></div>
+                </div>
+                <div class="indicator-item normal">
+                    <div class="indicator-name">Put/Call Ratio</div>
+                    <div class="indicator-value">0.85</div>
+                    <div class="status-dot normal"></div>
+                </div>
+                <div class="indicator-item normal">
+                    <div class="indicator-name">VVIX</div>
+                    <div class="indicator-value">95.2</div>
+                    <div class="status-dot normal"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="inflation">
+            <h3>🌾 インフレ & コモディティ</h3>
+            <div class="indicator-list">
+                <div class="indicator-item normal">
+                    <div class="indicator-name">米CPI (YoY)</div>
+                    <div class="indicator-value">3.2%</div>
+                    <div class="status-dot normal"></div>
+                </div>
+                <div class="indicator-item normal">
+                    <div class="indicator-name">PCEデフレーター</div>
+                    <div class="indicator-value">2.8%</div>
+                    <div class="status-dot normal"></div>
+                </div>
+                <div class="indicator-item normal">
+                    <div class="indicator-name">WTI原油</div>
+                    <div class="indicator-value">$72.4</div>
+                    <div class="status-dot normal"></div>
+                </div>
+                <div class="indicator-item normal">
+                    <div class="indicator-name">5y5y BEI</div>
+                    <div class="indicator-value">2.35%</div>
+                    <div class="status-dot normal"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="credit">
+            <h3>🏦 信用 & 資金調達コスト</h3>
+            <div class="indicator-list">
+                <div class="indicator-item normal">
+                    <div class="indicator-name">HYスプレッド</div>
+                    <div class="indicator-value">385bp</div>
+                    <div class="status-dot normal"></div>
+                </div>
+                <div class="indicator-item normal">
+                    <div class="indicator-name">IG CDX指数</div>
+                    <div class="indicator-value">65.2</div>
+                    <div class="status-dot normal"></div>
+                </div>
+                <div class="indicator-item normal">
+                    <div class="indicator-name">銀行CDS</div>
+                    <div class="indicator-value">125bp</div>
+                    <div class="status-dot normal"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="etf">
+            <h3>📈 ETF個別モニタリング</h3>
+            <div class="indicator-list">
+                <div class="indicator-item normal">
+                    <div class="indicator-name">SGOV P/D</div>
+                    <div class="indicator-value">+0.02%</div>
+                    <div class="status-dot normal"></div>
+                </div>
+                <div class="indicator-item normal">
+                    <div class="indicator-name">TLT P/D</div>
+                    <div class="indicator-value">-0.08%</div>
+                    <div class="status-dot normal"></div>
+                </div>
+                <div class="indicator-item normal">
+                    <div class="indicator-name">SPY 出来高</div>
+                    <div class="indicator-value">45.2M</div>
+                    <div class="status-dot normal"></div>
+                </div>
+                <div class="indicator-item normal">
+                    <div class="indicator-name">QQQ AUM</div>
+                    <div class="indicator-value">$185B</div>
+                    <div class="status-dot normal"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- コントロール -->
+        <div class="controls">
+            <button class="btn" onclick="refreshData()">🔄 更新</button>
+            <button class="btn" onclick="exportData()">📋 エクスポート</button>
+            <button class="btn" onclick="setupAlerts()">🔔 アラート</button>
+            <button class="btn" onclick="viewCharts()">📊 チャート</button>
+        </div>
+
+        <div class="last-updated">
+            最終更新: <span id="lastUpdate">2025年5月31日 07:30 JST</span>
+        </div>
+    </div>
+
+    <script>
+        // タブ切り替え
+        function showTab(tabName) {
+            // 全てのタブとコンテンツを非アクティブに
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            // 選択されたタブをアクティブに
+            event.target.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+        }
+
+        // データ更新
+        function refreshData() {
+            showAlert('データを更新中...', 'info');
+            
+            // 更新アニメーション
+            document.querySelectorAll('.indicator-value').forEach(el => {
+                el.style.opacity = '0.5';
+            });
+            
+            setTimeout(() => {
+                // ランダムデータ更新（実際にはAPI呼び出し）
+                updateRandomValues();
+                document.getElementById('lastUpdate').textContent = new Date().toLocaleString('ja-JP');
+                
+                document.querySelectorAll('.indicator-value').forEach(el => {
+                    el.style.opacity = '1';
+                });
+                
+                showAlert('データが更新されました', 'success');
+            }, 1500);
+        }
+
+        // ランダム値更新
+        function updateRandomValues() {
+            const updates = {
+                'vixValue': (15 + Math.random() * 15).toFixed(1),
+                'treasury10yValue': (3.8 + Math.random() * 1.0).toFixed(2) + '%',
+                'usdjpyValue': (155 + Math.random() * 5).toFixed(2),
+                'wtiValue': '$' + (70 + Math.random() * 15).toFixed(1)
+            };
+            
+            Object.entries(updates).forEach(([id, value]) => {
+                const element = document.getElementById(id);
+                if (element) element.textContent = value;
+            });
+        }
+
+        // アラート表示
+        function showAlert(message, type = 'info') {
+            const banner = document.getElementById('alertBanner');
+            const text = document.getElementById('alertText');
+            
+            text.textContent = message;
+            banner.classList.add('show');
+            
+            setTimeout(() => {
+                banner.classList.remove('show');
+            }, 3000);
+        }
+
+        // その他の機能
+        function exportData() {
+            showAlert('データをエクスポート中...', 'info');
+            setTimeout(() => showAlert('エクスポート完了', 'success'), 1000);
+        }
+
+        function setupAlerts() {
+            showAlert('アラート設定を開いています...', 'info');
+        }
+
+        function viewCharts() {
+            showAlert('チャートビューを準備中...', 'info');
+        }
+
+        // PWA機能
+        let deferredPrompt;
+        
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.getElementById('installPrompt').style.display = 'block';
+        });
+
+        document.getElementById('installBtn').addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    document.getElementById('installPrompt').style.display = 'none';
+                }
+                deferredPrompt = null;
+            }
+        });
+
+        // 自動更新
+        setInterval(() => {
+            const now = new Date();
+            if (now.getMinutes() % 5 === 0 && now.getSeconds() === 0) {
+                refreshData();
+            }
+        }, 1000);
+
+        // 閾値チェック
+        function checkThresholds() {
+            const vix = parseFloat(document.getElementById('vixValue').textContent);
+            if (vix > 30) {
+                showAlert('VIX 30超え - 株式ポジション見直し推奨', 'warning');
+            }
+        }
+
+        setInterval(checkThresholds, 30000);
+
+        // タッチデバイス対応
+        if ('ontouchstart' in window) {
+            document.body.style.webkitTouchCallout = 'none';
+            document.body.style.webkitUserSelect = 'none';
+        }
+    </script>
+</body>
+</html>
